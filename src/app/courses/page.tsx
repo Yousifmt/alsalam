@@ -1,9 +1,26 @@
 import { CourseCard } from "@/components/course-card";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Laptop2 } from "lucide-react"; // ✅ Import icons
+
 
 export default function CoursesPage() {
   const courses = [
+    
     {
+      title: "CompTIA A+",
+      icon: Laptop2,
+      description:
+        "Start your IT career with CompTIA A+. This course provides foundational knowledge in hardware, operating systems, troubleshooting, and support skills needed for entry-level IT roles.",
+      duration: "1 Month",
+      mode: "In-person",
+      startDate: "New batches every month",
+      registrationLink: "https://wa.me/97317686200?text=I'm%20interested%20in%20the%20CompTIA%20A%2B%20course.",
+      image: {
+        src: "/images/Information-Technology.jpg", // ✅ Ensure this image exists in /public/images
+        aiHint: "computer technician and hardware",
+      },
+    },
+
+{
       title: "CompTIA Security+",
       icon: ShieldCheck,
       description:
@@ -16,7 +33,9 @@ export default function CoursesPage() {
         src: "/images/cybersecurity.jpg", // ✅ Updated to local image
         aiHint: "cybersecurity network",
       },
-    },
+    }
+
+
   ];
 
   return (

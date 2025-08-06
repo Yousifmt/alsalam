@@ -97,7 +97,6 @@ export function CourseCard({
     </Link>
   </Button>
 </div>
-
           </CardContent>
         </div>
       </div>
