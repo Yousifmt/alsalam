@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for sending a contact form submission email.
@@ -11,7 +10,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
-
 
 const ContactFormDataSchema = z.object({
   fullName: z.string().describe('The full name of the person submitting the form.'),
@@ -64,21 +62,20 @@ const sendContactEmailFlow = ai.defineFlow(
       };
 
       await transporter.sendMail(mailOptions);
-      
+
       return {
         success: true,
-        message: 'Thank you for your message! We will get back to you shortly.',
+        message: 'شكرًا لرسالتك! سنقوم بالتواصل معك في أقرب فرصة.',
       };
     } catch (error) {
       console.error('Error sending email:', error);
       return {
         success: false,
-        message: 'There was an error sending your message. Please try again later.',
+        message: 'حدث خطأ أثناء إرسال رسالتك. يرجى المحاولة لاحقًا.',
       };
     }
   }
 );
-
 
 export async function sendContactEmail(
   input: ContactFormData

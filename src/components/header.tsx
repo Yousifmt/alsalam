@@ -1,29 +1,33 @@
+// src/components/header.tsx
 "use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useLanguage } from "@/components/lang-context";
 
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/courses', label: 'Courses' },
-  { href: '/contact', label: 'Contact' },
+const NAV = [
+  { href: "/",        labelEn: "Home",    labelAr: "الرئيسية" },
+  { href: "/courses", labelEn: "Courses", labelAr: "الدورات" },
+  { href: "/contact", labelEn: "Contact", labelAr: "تواصل" },
 ];
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
+  const { isArabic, toggle } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+    // Force LTR for the header regardless of global <html dir>
+    <header
+      dir="ltr"
+      className="sticky top-0 z-50 w-full border-b border-border/40 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60"
+    >
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        
-        {/* ✅ Logo Image with Link to Home */}
-        <Link href="/" className="flex items-center space-x-2">
+        {/* Logo (always English) */}
+        <Link href="/" className="flex items-center gap-2">
           <Image
             src="/images/logo.png"
             alt="Al-Salam Training Centre Logo"
@@ -32,27 +36,42 @@ export default function Header() {
             className="rounded-full"
             priority
           />
-          <span className="text-base font-bold text-orange-500">Al-Salam <span className="text-white font-normal">Training Centre</span></span>
+          <span className="text-base font-bold text-orange-500">
+            Al-Salam <span className="text-white font-normal">Training Centre</span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          {navLinks.map((link) => (
+        <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
+          {NAV.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
-              className={cn(
-                'transition-colors hover:text-primary',
-                pathname === link.href ? 'text-primary' : 'text-muted-foreground'
-              )}
+              href={link.href} // same routes in both languages
+              className={cn("transition-colors hover:text-primary", "text-muted-foreground")}
             >
-              {link.label}
+              {isArabic ? link.labelAr : link.labelEn}
             </Link>
           ))}
+
+          {/* Language toggle (text only) */}
+          <button
+            onClick={toggle}
+            className="ml-3 px-3 py-1 rounded border hover:bg-muted transition"
+            aria-label="Change language"
+          >
+            {isArabic ? "English" : "العربية"}
+          </button>
         </nav>
 
-        {/* Mobile Menu Button */}
-        <div className="md:hidden">
+        {/* Mobile controls */}
+        <div className="md:hidden flex items-center gap-2">
+          <button
+            onClick={toggle}
+            className="px-3 py-1 rounded border hover:bg-muted transition"
+            aria-label="Change language"
+          >
+            {isArabic ? "English" : "العربية"}
+          </button>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             <span className="sr-only">Toggle menu</span>
@@ -60,21 +79,18 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Nav (also force LTR) */}
       {isOpen && (
-        <div className="md:hidden">
-          <nav className="flex flex-col items-center space-y-4 py-4 border-t border-border/40">
-            {navLinks.map((link) => (
+        <div className="md:hidden" dir="ltr">
+          <nav className="flex flex-col items-center gap-4 py-4 border-t border-border/40">
+            {NAV.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={cn(
-                  'text-lg transition-colors hover:text-primary',
-                  pathname === link.href ? 'text-primary' : 'text-foreground'
-                )}
+                className={cn("text-lg transition-colors hover:text-primary", "text-foreground")}
               >
-                {link.label}
+                {isArabic ? link.labelAr : link.labelEn}
               </Link>
             ))}
           </nav>
