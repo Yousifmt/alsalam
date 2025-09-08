@@ -102,8 +102,11 @@ export default function Footer() {
         <Separator className="my-8" />
 
         <div className="text-center text-sm text-muted-foreground">
-          © {year} Al-Salam Training Centre. All Rights Reserved
-        </div>
+  © {year} Al-Salam Training Centre. All Rights Reserved
+  <br />
+  <span className="block">Created by (Yousif Alazzawi)</span>
+</div>
+
       </div>
     </footer>
   );
