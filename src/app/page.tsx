@@ -14,38 +14,72 @@ import { useLanguage } from "@/components/lang-context";
 /** خلفية ثابتة + Zoom-out خفيف أثناء السكول */
 function FixedBackground({ isArabic }: { isArabic: boolean }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
+  const state = React.useRef({
+    smoothedScale: 1.04, // يبدأ قريب من القيمة العليا
+    raf: 0,
+  });
 
-  React.useEffect(() => {
+  const getVH = () =>
+    (window.visualViewport?.height ?? window.innerHeight ?? 1);
+
+  const clamp = (v: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, v));
+
+  const update = React.useCallback(() => {
     const el = ref.current;
     if (!el) return;
 
-    let raf = 0;
+    // تقدّم السكول “داخل” نطاق مدروس لتجنب قفزة الموبايل
+    const vh = getVH();
+    const y = window.scrollY || window.pageYOffset || 0;
+
+    const startOffset = 0.1 * vh;      // ابدأ التأثير بعد 10% من الشاشة
+    const range = 1.6 * vh;            // امتداد التأثير ~1.6 شاشة
+    const raw = (y - startOffset) / range;
+    const p = clamp(raw, 0, 1);
+
+    // مدى الزوم ألطف للموبايل: 1.04 -> 1.00
+    const targetScale = 1.04 - 0.04 * p;
+
+    // فلتر أسي يمنع القفزة الأولى (كل فريم يقترب 12%)
+    const alpha = 0.12;
+    state.current.smoothedScale =
+      state.current.smoothedScale +
+      (targetScale - state.current.smoothedScale) * alpha;
+
+    el.style.transform = `scale(${state.current.smoothedScale}) translateZ(0)`;
+  }, []);
+
+  React.useEffect(() => {
     const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-
-        // تقدّم السكول عبر أول شاشة ونصف تقريبًا ليكون التأثير ناعمًا
-        const vh = window.innerHeight || 1;
-        const y = window.scrollY || window.pageYOffset || 0;
-        const p = Math.min(Math.max(y / (1.5 * vh), 0), 1);
-
-        // من 1.06 -> 1.00 (عدّل 0.06 لتكبير/تصغير التأثير)
-        const scale = 1.06 - 0.06 * p;
-
-        el.style.transform = `scale(${scale}) translateZ(0)`;
+      if (state.current.raf) return;
+      state.current.raf = requestAnimationFrame(() => {
+        state.current.raf = 0;
+        update();
       });
     };
 
-    onScroll();
+    // أول ضبط
+    update();
+
+    // استمع لتغيرات الواجهة البصرية (الموبايل navbar)
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", onScroll);
+    vv?.addEventListener("scroll", onScroll);
+
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+    document.addEventListener("visibilitychange", onScroll);
+
     return () => {
+      vv?.removeEventListener("resize", onScroll);
+      vv?.removeEventListener("scroll", onScroll);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onScroll);
+      if (state.current.raf) cancelAnimationFrame(state.current.raf);
     };
-  }, []);
+  }, [update]);
 
   return (
     <div className="fixed inset-0 -z-50 will-change-transform" ref={ref}>
@@ -61,6 +95,7 @@ function FixedBackground({ isArabic }: { isArabic: boolean }) {
     </div>
   );
 }
+
 
 export default function Home() {
   const { isArabic } = useLanguage();
