@@ -12,74 +12,41 @@ import { Reveal } from "@/components/reveal";
 import { useLanguage } from "@/components/lang-context";
 
 /** خلفية ثابتة + Zoom-out خفيف أثناء السكول */
+/** Fixed background with symmetric zoom in/out on scroll (no hysteresis) */
 function FixedBackground({ isArabic }: { isArabic: boolean }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
-  const state = React.useRef({
-    smoothedScale: 1.04, // يبدأ قريب من القيمة العليا
-    raf: 0,
-  });
 
-  const getVH = () =>
-    (window.visualViewport?.height ?? window.innerHeight ?? 1);
+  // helpers
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const getVH = () => window.visualViewport?.height ?? document.documentElement.clientHeight ?? 1;
 
-  const clamp = (v: number, min: number, max: number) =>
-    Math.max(min, Math.min(max, v));
-
-  const update = React.useCallback(() => {
+  React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    // تقدّم السكول “داخل” نطاق مدروس لتجنب قفزة الموبايل
-    const vh = getVH();
-    const y = window.scrollY || window.pageYOffset || 0;
+    const onFrame = () => {
+      // progress across a controlled range, with a small start offset to avoid the mobile top-bar jump
+      const vh = getVH();
+      const y = window.scrollY || window.pageYOffset || 0;
 
-    const startOffset = 0.1 * vh;      // ابدأ التأثير بعد 10% من الشاشة
-    const range = 1.6 * vh;            // امتداد التأثير ~1.6 شاشة
-    const raw = (y - startOffset) / range;
-    const p = clamp(raw, 0, 1);
+      const startOffset = 0.10 * vh;    // start effect after 10% viewport
+      const range = 1.6 * vh;           // effect spans ~1.6 viewports
+      const raw = (y - startOffset) / range;
+      const p = clamp(raw, 0, 1);
 
-    // مدى الزوم ألطف للموبايل: 1.04 -> 1.00
-    const targetScale = 1.04 - 0.04 * p;
+      // optional symmetric easing (same up/down): f(p) depends only on position
+      const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic; remove if you want linear
 
-    // فلتر أسي يمنع القفزة الأولى (كل فريم يقترب 12%)
-    const alpha = 0.12;
-    state.current.smoothedScale =
-      state.current.smoothedScale +
-      (targetScale - state.current.smoothedScale) * alpha;
+      // symmetric scale mapping: 1.04 -> 1.00
+      const scale = 1.04 - 0.04 * ease;
 
-    el.style.transform = `scale(${state.current.smoothedScale}) translateZ(0)`;
+      el.style.transform = `scale(${scale}) translateZ(0)`;
+      requestAnimationFrame(onFrame);
+    };
+
+    const raf = requestAnimationFrame(onFrame);
+    return () => cancelAnimationFrame(raf);
   }, []);
-
-  React.useEffect(() => {
-    const onScroll = () => {
-      if (state.current.raf) return;
-      state.current.raf = requestAnimationFrame(() => {
-        state.current.raf = 0;
-        update();
-      });
-    };
-
-    // أول ضبط
-    update();
-
-    // استمع لتغيرات الواجهة البصرية (الموبايل navbar)
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", onScroll);
-    vv?.addEventListener("scroll", onScroll);
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    document.addEventListener("visibilitychange", onScroll);
-
-    return () => {
-      vv?.removeEventListener("resize", onScroll);
-      vv?.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      document.removeEventListener("visibilitychange", onScroll);
-      if (state.current.raf) cancelAnimationFrame(state.current.raf);
-    };
-  }, [update]);
 
   return (
     <div className="fixed inset-0 -z-50 will-change-transform" ref={ref}>
@@ -95,6 +62,7 @@ function FixedBackground({ isArabic }: { isArabic: boolean }) {
     </div>
   );
 }
+
 
 
 export default function Home() {
