@@ -1,6 +1,7 @@
 // src/app/page.tsx
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,57 @@ import { Award, Briefcase, Users } from "lucide-react";
 import { CourseCard } from "@/components/course-card";
 import { Reveal } from "@/components/reveal";
 import { useLanguage } from "@/components/lang-context";
+
+/** خلفية ثابتة + Zoom-out خفيف أثناء السكول */
+function FixedBackground({ isArabic }: { isArabic: boolean }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+
+        // تقدّم السكول عبر أول شاشة ونصف تقريبًا ليكون التأثير ناعمًا
+        const vh = window.innerHeight || 1;
+        const y = window.scrollY || window.pageYOffset || 0;
+        const p = Math.min(Math.max(y / (1.5 * vh), 0), 1);
+
+        // من 1.06 -> 1.00 (عدّل 0.06 لتكبير/تصغير التأثير)
+        const scale = 1.06 - 0.06 * p;
+
+        el.style.transform = `scale(${scale}) translateZ(0)`;
+      });
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 -z-50 will-change-transform" ref={ref}>
+      <Image
+        src="/images/back.jpg"
+        alt={isArabic ? "خلفية التدريب" : "Training Background"}
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-black/55" />
+    </div>
+  );
+}
 
 export default function Home() {
   const { isArabic } = useLanguage();
@@ -97,120 +149,116 @@ export default function Home() {
   const arRestText = isArabic ? arBParts.slice(1).join(" ") : "";
 
   return (
-    <div className="flex flex-col min-h-[100dvh]" dir={isArabic ? "rtl" : "ltr"}>
-      <main className="flex-1">
+    <div className="relative flex flex-col min-h-[100dvh]" dir={isArabic ? "rtl" : "ltr"}>
+      {/* الخلفية الثابتة تغطي كامل الشاشة دائماً مع Zoom-out خفيف */}
+      <FixedBackground isArabic={isArabic} />
+
+      <main className="relative">
         {/* HERO */}
-        <section className="relative h-[80vh] w-full overflow-hidden">
-          <Image
-            src="/images/back.jpg"
-            alt={isArabic ? "خلفية التدريب" : "Training Background"}
-            fill
-            priority
-            className="object-cover object-center z-0"
-          />
-          <div className="absolute inset-0 bg-black/60 z-10" />
-          <div className="relative z-20 flex flex-col items-center justify-center h-full text-center text-white p-4">
-            <Reveal>
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                {isArabic ? (
-                  <>
-                    <span className="text-white">{copy.heroTitleA}</span>{" "}
-                    <span className="text-primary">{arBrand}</span>
-                    {arRestText && <> <span className="text-white">{arRestText}</span></>}
-                  </>
-                ) : (
-                  <>
-                    <span className="text-primary">{copy.heroTitleA}</span>
-                    <span className="text-white">{copy.heroTitleB}</span>
-                  </>
-                )}
-              </h1>
-              <p className="mx-auto mt-4 max-w-[700px] text-lg md:text-xl text-neutral-200">
-                {copy.heroSubtitle}
-              </p>
-              <Button asChild size="lg" className="mt-6">
-                <Link href="/courses">{copy.ctaExplore}</Link>
-              </Button>
-            </Reveal>
-          </div>
+        <section className="relative h-screen w-full flex items-center justify-center text-center text-white p-4">
+          <Reveal>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              {isArabic ? (
+                <>
+                  <span className="text-white">{copy.heroTitleA}</span>{" "}
+                  <span className="text-primary">{arBrand}</span>
+                  {arRestText && <> <span className="text-white">{arRestText}</span></>}
+                </>
+              ) : (
+                <>
+                  <span className="text-primary">{copy.heroTitleA}</span>
+                  <span className="text-white">{copy.heroTitleB}</span>
+                </>
+              )}
+            </h1>
+            <p className="mx-auto mt-4 max-w-[700px] text-lg md:text-xl text-neutral-200">
+              {copy.heroSubtitle}
+            </p>
+            <Button asChild size="lg" className="mt-6">
+              <Link href="/courses">{copy.ctaExplore}</Link>
+            </Button>
+          </Reveal>
         </section>
 
-        {/* ABOUT */}
-        <section id="about" className="w-full py-20">
-          <div className="container px-4 md:px-6 text-center">
-            <Reveal className="space-y-6">
-              <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.aboutTitle}</h2>
-              <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.aboutBody}</p>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* WHY */}
-        <section id="why-us" className="w-full py-20">
-          <div className="container px-4 md:px-6 text-center">
-            <Reveal className="space-y-6 mb-12">
-              <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.whyTitle}</h2>
-              <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.whySubtitle}</p>
-            </Reveal>
-
-            <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 mx-auto max-w-6xl">
-              {copy.why.map((item, idx) => (
-                <Reveal key={item.title} delay={idx * 100}>
-                  <Card className="text-center p-6 transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-card">
-                    <CardHeader>
-                      <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 w-fit">
-                        <item.icon className="h-8 w-8" />
-                      </div>
-                      <CardTitle className="font-headline mt-4">{item.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{item.content}</p>
-                    </CardContent>
-                  </Card>
-                </Reveal>
-              ))}
+        {/* بقية السكاشن فوق الخلفية الثابتة */}
+        <div className="relative z-10 bg-background -mt-px">
+          {/* ABOUT */}
+          <section id="about" className="w-full py-20">
+            <div className="container px-4 md:px-6 text-center">
+              <Reveal className="space-y-6">
+                <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.aboutTitle}</h2>
+                <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.aboutBody}</p>
+              </Reveal>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* FEATURED COURSE */}
-        <section id="courses" className="w-full py-20 bg-background/80">
-          <div className="container px-4 md:px-6 text-center">
-            <Reveal className="space-y-6 mb-12">
-              <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.featuredTitle}</h2>
-              <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.featuredBody}</p>
-            </Reveal>
+          {/* WHY */}
+          <section id="why-us" className="w-full py-20">
+            <div className="container px-4 md:px-6 text-center">
+              <Reveal className="space-y-6 mb-12">
+                <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.whyTitle}</h2>
+                <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.whySubtitle}</p>
+              </Reveal>
 
-            <div className="max-w-4xl mx-auto">
-              {copy.courses.map((course, i) => (
-                <Reveal key={course.title} delay={i * 120}>
-                  <div className="animate-none">
-                    <CourseCard {...course} />
-                  </div>
-                </Reveal>
-              ))}
+              <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 mx-auto max-w-6xl">
+                {copy.why.map((item, idx) => (
+                  <Reveal key={item.title} delay={idx * 100}>
+                    <Card className="text-center p-6 transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-card">
+                      <CardHeader>
+                        <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 w-fit">
+                          <item.icon className="h-8 w-8" />
+                        </div>
+                        <CardTitle className="font-headline mt-4">{item.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p>{item.content}</p>
+                      </CardContent>
+                    </Card>
+                  </Reveal>
+                ))}
+              </div>
             </div>
+          </section>
 
-            <Reveal className="text-center mt-12" delay={150}>
-              <Button asChild size="lg">
-                <Link href="/courses">{copy.viewAll}</Link>
-              </Button>
-            </Reveal>
-          </div>
-        </section>
+          {/* FEATURED COURSE */}
+          <section id="courses" className="w-full py-20 bg-background/80">
+            <div className="container px-4 md:px-6 text-center">
+              <Reveal className="space-y-6 mb-12">
+                <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.featuredTitle}</h2>
+                <p className="max-w-3xl mx-auto text-muted-foreground text-lg">{copy.featuredBody}</p>
+              </Reveal>
 
-        {/* CTA */}
-        <section id="contact-cta" className="w-full py-20">
-          <div className="container px-4 md:px-6 text-center">
-            <Reveal className="space-y-6">
-              <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.ctaTitle}</h2>
-              <p className="max-w-xl mx-auto text-muted-foreground text-lg">{copy.ctaBody}</p>
-              <Button asChild size="lg">
-                <Link href="/contact">{copy.getInTouch}</Link>
-              </Button>
-            </Reveal>
-          </div>
-        </section>
+              <div className="max-w-4xl mx-auto">
+                {copy.courses.map((course, i) => (
+                  <Reveal key={course.title} delay={i * 120}>
+                    <div className="animate-none">
+                      <CourseCard {...course} />
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+
+              <Reveal className="text-center mt-12" delay={150}>
+                <Button asChild size="lg">
+                  <Link href="/courses">{copy.viewAll}</Link>
+                </Button>
+              </Reveal>
+            </div>
+          </section>
+
+          {/* CTA */}
+          <section id="contact-cta" className="w-full py-20">
+            <div className="container px-4 md:px-6 text-center">
+              <Reveal className="space-y-6">
+                <h2 className="text-3xl sm:text-5xl font-bold font-headline">{copy.ctaTitle}</h2>
+                <p className="max-w-xl mx-auto text-muted-foreground text-lg">{copy.ctaBody}</p>
+                <Button asChild size="lg">
+                  <Link href="/contact">{copy.getInTouch}</Link>
+                </Button>
+              </Reveal>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
